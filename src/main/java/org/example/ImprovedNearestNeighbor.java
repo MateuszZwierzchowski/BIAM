@@ -1,38 +1,61 @@
 package org.example;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
 import static org.example.CreateGraph.calculatePathLength;
 
-public class RandomEdge {
-    public static double calcRandomEdge(Double[][] distanceMatrix) {
-        Random rand = new Random();
-        int numberOfCities = distanceMatrix.length;
-        List<Integer> path = new ArrayList<>();
-        boolean[] visited = new boolean[numberOfCities];
+public class ImprovedNearestNeighbor {
 
-        // Start od losowego miasta
-        int currentCity = rand.nextInt(numberOfCities);
+    private static List<Integer> nearestNeighborPath(Double[][] distanceMatrix) {
+        int numberOfCities = distanceMatrix.length;
+        boolean[] visited = new boolean[numberOfCities];
+        List<Integer> path = new ArrayList<>();
+        Random rand = new Random();
+        int currentCity = rand.nextInt(distanceMatrix.length);
         path.add(currentCity);
         visited[currentCity] = true;
 
-        // Główna pętla - dodawaj krawędzie do niewykorzystanych miast
-        while (path.size() < numberOfCities) {
-            List<Integer> potentialNextCities = new ArrayList<>();
-            for (int i = 0; i < numberOfCities; i++) {
-                if (!visited[i]) {
-                    potentialNextCities.add(i);
+        for (int i = 1; i < numberOfCities; i++) {
+            double minDistance = Double.MAX_VALUE;
+            int nearestCity = -1;
+            for (int j = 0; j < numberOfCities; j++) {
+                if (!visited[j] && distanceMatrix[currentCity][j] < minDistance) {
+                    minDistance = distanceMatrix[currentCity][j];
+                    nearestCity = j;
                 }
             }
-            int nextCityIndex = rand.nextInt(potentialNextCities.size());
-            int nextCity = potentialNextCities.get(nextCityIndex);
-            path.add(nextCity);
-            visited[nextCity] = true;
+            path.add(nearestCity);
+            visited[nearestCity] = true;
+            currentCity = nearestCity;
         }
+        return path;
+    }
+
+    private static boolean apply2Opt(List<Integer> path, Double[][] distanceMatrix) {
+        boolean improved = false;
+        for (int i = 0; i < path.size() - 3; i++) {
+            for (int j = i + 2; j < path.size() - 1; j++) {
+                double beforeSwap = distanceMatrix[path.get(i)][path.get(i + 1)] + distanceMatrix[path.get(j)][path.get(j + 1)];
+                double afterSwap = distanceMatrix[path.get(i)][path.get(j)] + distanceMatrix[path.get(i + 1)][path.get(j + 1)];
+                if (afterSwap < beforeSwap) {
+                    Collections.reverse(path.subList(i + 1, j + 1));
+                    improved = true;
+                }
+            }
+        }
+        return improved;
+    }
+
+    public static double calcImprovedNN(Double[][] distanceMatrix) {
+        List<Integer> path = nearestNeighborPath(distanceMatrix);
+        boolean improved;
+        do {
+            improved = apply2Opt(path, distanceMatrix);
+        } while (improved);
 
         return calculatePathLength(path, distanceMatrix);
     }
 }
-
